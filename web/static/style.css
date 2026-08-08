@@ -1,0 +1,94 @@
+:root {
+    --bg: #0f1419;
+    --panel: #1a222c;
+    --text: #e7eef7;
+    --muted: #9aafc0;
+    --accent: #3d9cfd;
+    --line: #2a3644;
+    --ok: #3ecf8e;
+}
+
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    color: var(--text);
+    background:
+            radial-gradient(1200px 600px at 10% -10%, #1b2a3d 0%, transparent 55%),
+            radial-gradient(900px 500px at 100% 0%, #152318 0%, transparent 50%),
+            var(--bg);
+    min-height: 100vh;
+}
+
+.page {
+    width: min(720px, calc(100% - 2rem));
+    margin: 0 auto;
+    padding: 3rem 0 4rem;
+}
+
+.brand {
+    margin: 0 0 .5rem;
+    font-size: .85rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+h1 { margin: 0 0 .75rem; font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.lead { margin: 0; color: var(--muted); line-height: 1.5; }
+
+.panel {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: color-mix(in srgb, var(--panel) 92%, white 8%);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.field { display: grid; gap: .5rem; margin-bottom: 1rem; }
+fieldset.field {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+}
+fieldset label { display: inline-flex; gap: .4rem; margin-right: 1rem; }
+
+button, .download {
+    display: inline-block;
+    border: 0;
+    border-radius: 8px;
+    padding: .7rem 1rem;
+    background: var(--accent);
+    color: #041018;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.progress {
+    height: 8px;
+    background: var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: .75rem 0 1rem;
+}
+.progress__bar {
+    height: 100%;
+    width: 0;
+    background: var(--ok);
+    transition: width .25s ease;
+}
+
+.sizes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin: 0 0 1rem;
+}
+.sizes div {
+    padding: .75rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+dt { color: var(--muted); font-size: .8rem; }
+dd { margin: .25rem 0 0; font-size: 1.1rem; }

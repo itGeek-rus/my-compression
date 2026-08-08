@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>my-compression</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<main class="page">
+    <header class="hero">
+        <p class="brand">my-compression</p>
+        <h1>Архивация и распаковка</h1>
+        <p class="lead">ZIP и TAR.GZ без потери данных. Загрузите файл, выберите действие и скачайте результат.</p>
+    </header>
+
+    <form id="compress-form" class="panel" enctype="multipart/form-data">
+        <label class="field">
+            <span>Файл</span>
+            <input type="file" name="file" required />
+        </label>
+
+        <fieldset class="field">
+            <legend>Действие</legend>
+            <label><input type="radio" name="action" value="archive" checked /> Архивировать</label>
+            <label><input type="radio" name="action" value="extract" /> Распаковать</label>
+        </fieldset>
+
+        <fieldset class="field">
+            <legend>Формат</legend>
+            <label><input type="radio" name="format" value="zip" checked /> ZIP</label>
+            <label><input type="radio" name="format" value="tar.gz" /> TAR.GZ</label>
+        </fieldset>
+
+        <button type="submit">Запустить</button>
+    </form>
+
+    <section class="panel status" aria-live="polite">
+        <h2>Статус</h2>
+        <p id="status-text">Ожидание файла…</p>
+        <div class="progress" hidden>
+            <div id="progress-bar" class="progress__bar"></div>
+        </div>
+        <dl class="sizes">
+            <div><dt>До</dt><dd id="size-before">—</dd></div>
+            <div><dt>После</dt><dd id="size-after">—</dd></div>
+        </dl>
+        <a id="download-link" class="download" hidden href="#">Скачать результат</a>
+    </section>
+</main>
+
+<script>
+    const form = document.getElementById('compress-form');
+    const statusText = document.getElementById('status-text');
+    const progressWrap = document.querySelector('.progress');
+    const progressBar = document.getElementById('progress-bar');
+    const sizeBefore = document.getElementById('size-before');
+    const sizeAfter = document.getElementById('size-after');
+    const downloadLink = document.getElementById('download-link');
+
+    const fmtBytes = (n) => {
+        if (n == null || n < 0) return '—';
+        const u = ['B', 'KB', 'MB', 'GB'];
+        let i = 0, v = n;
+        while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+        return `${v.toFixed(i ? 1 : 0)} ${u[i]}`;
+    };
+
+    const renderJob = (job) => {
+        statusText.textContent = job.message || job.status;
+        progressWrap.hidden = false;
+        progressBar.style.width = `${job.progress || 0}%`;
+        sizeBefore.textContent = fmtBytes(job.original_size);
+        sizeAfter.textContent = fmtBytes(job.result_size);
+        if (job.status === 'done') {
+            downloadLink.hidden = false;
+            downloadLink.href = `/api/jobs/${job.id}/download`;
+        } else {
+            downloadLink.hidden = true;
+        }
+    };
+
+    const poll = async (id) => {
+        const res = await fetch(`/api/jobs/${id}`);
+        if (!res.ok) throw new Error('не удалось получить статус');
+        const job = await res.json();
+        renderJob(job);
+        if (job.status === 'done' || job.status === 'failed') return;
+        setTimeout(() => poll(id), 500);
+    };
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        statusText.textContent = 'Загрузка…';
+        downloadLink.hidden = true;
+
+        const res = await fetch('/api/process', { method: 'POST', body: new FormData(form) });
+        const data = await res.json();
+        if (!res.ok) {
+            statusText.textContent = data.error || 'ошибка';
+            return;
+        }
+        renderJob(data);
+        poll(data.id);
+    });
+</script>
+</body>
+</html>
