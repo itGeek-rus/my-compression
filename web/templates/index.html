@@ -1,51 +1,51 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>my-compression</title>
+    <title>my compression</title>
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
 <main class="page">
     <header class="hero">
-        <p class="brand">my-compression</p>
-        <h1>Архивация и распаковка</h1>
-        <p class="lead">ZIP и TAR.GZ без потери данных. Загрузите файл, выберите действие и скачайте результат.</p>
+        <p class="brand">my compression</p>
+        <h1>Archiving and unpacking</h1>
+        <p class="lead">ZIP and TAR.GZ without data loss. Upload the file, select an action, and download the result.</p>
     </header>
 
     <form id="compress-form" class="panel" enctype="multipart/form-data">
         <label class="field">
-            <span>Файл</span>
+            <span>File</span>
             <input type="file" name="file" required />
         </label>
 
         <fieldset class="field">
-            <legend>Действие</legend>
-            <label><input type="radio" name="action" value="archive" checked /> Архивировать</label>
-            <label><input type="radio" name="action" value="extract" /> Распаковать</label>
+            <legend>Action</legend>
+            <label><input type="radio" name="action" value="archive" checked /> To archive</label>
+            <label><input type="radio" name="action" value="extract" /> Unpack</label>
         </fieldset>
 
         <fieldset class="field">
-            <legend>Формат</legend>
+            <legend>Format</legend>
             <label><input type="radio" name="format" value="zip" checked /> ZIP</label>
             <label><input type="radio" name="format" value="tar.gz" /> TAR.GZ</label>
         </fieldset>
 
-        <button type="submit">Запустить</button>
+        <button type="submit">To run</button>
     </form>
 
     <section class="panel status" aria-live="polite">
-        <h2>Статус</h2>
-        <p id="status-text">Ожидание файла…</p>
+        <h2>Status</h2>
+        <p id="status-text">Waiting for the file…</p>
         <div class="progress" hidden>
             <div id="progress-bar" class="progress__bar"></div>
         </div>
         <dl class="sizes">
-            <div><dt>До</dt><dd id="size-before">—</dd></div>
-            <div><dt>После</dt><dd id="size-after">—</dd></div>
+            <div><dt>Before</dt><dd id="size-before">—</dd></div>
+            <div><dt>After</dt><dd id="size-after">—</dd></div>
         </dl>
-        <a id="download-link" class="download" hidden href="#">Скачать результат</a>
+        <a id="download-link" class="download" hidden href="#">Download the result</a>
     </section>
 </main>
 
@@ -67,7 +67,9 @@
     };
 
     const renderJob = (job) => {
-        statusText.textContent = job.message || job.status;
+        statusText.textContent = job.status === 'failed'
+            ? (job.error || job.message || 'error')
+            : (job.message || job.status);
         progressWrap.hidden = false;
         progressBar.style.width = `${job.progress || 0}%`;
         sizeBefore.textContent = fmtBytes(job.original_size);
@@ -82,7 +84,7 @@
 
     const poll = async (id) => {
         const res = await fetch(`/api/jobs/${id}`);
-        if (!res.ok) throw new Error('не удалось получить статус');
+        if (!res.ok) throw new Error('it was not possible to obtain the status.');
         const job = await res.json();
         renderJob(job);
         if (job.status === 'done' || job.status === 'failed') return;
@@ -91,13 +93,13 @@
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        statusText.textContent = 'Загрузка…';
+        statusText.textContent = 'Downloading…';
         downloadLink.hidden = true;
 
         const res = await fetch('/api/process', { method: 'POST', body: new FormData(form) });
         const data = await res.json();
         if (!res.ok) {
-            statusText.textContent = data.error || 'ошибка';
+            statusText.textContent = data.error || 'error';
             return;
         }
         renderJob(data);

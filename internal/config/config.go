@@ -15,7 +15,7 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		Addr:            getenv("ADDR", "9005"),
+		Addr:            getenv("ADDR", ":9005"),
 		MaxUploadBytes:  getenvInt64("MAX_UPLOAD_BYTES", 32<<20), // 32 MiB
 		TempDir:         getenv("TEMP_DIR", os.TempDir()),
 		ShutdownTimeout: 10 * time.Second,
