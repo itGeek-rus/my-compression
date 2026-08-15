@@ -1,17 +1,18 @@
-package app
+package main
 
 import (
 	"context"
 	"errors"
 	"log/slog"
-	"my-compression/internal/config"
-	"my-compression/internal/handler"
-	"my-compression/internal/job"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"my-compression/internal/config"
+	"my-compression/internal/handler"
+	"my-compression/internal/job"
 )
 
 func main() {
@@ -29,8 +30,8 @@ func main() {
 		Addr:              cfg.Addr,
 		Handler:           h.Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      60 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      120 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
 
