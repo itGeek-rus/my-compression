@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=My Compression
+Comment=Archive and extract ZIP / TAR.GZ
+Exec=my-compression
+Icon=my-compression
+Terminal=false
+Categories=Utility;Archiving;

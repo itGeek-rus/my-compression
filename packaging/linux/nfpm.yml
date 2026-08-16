@@ -1,0 +1,15 @@
+name: my-compression
+arch: amd64
+platform: linux
+version: 0.1.0
+section: utils
+priority: optional
+maintainer: My Compression <noreply@localhost>
+description: Archive and extract files as ZIP or TAR.GZ
+contents:
+  - src: dist/my-compression
+    dst: /usr/bin/my-compression
+  - src: packaging/linux/my-compression.desktop
+    dst: /usr/share/applications/my-compression.desktop
+  - src: packaging/icon.png
+    dst: /usr/share/icons/hicolor/512x512/apps/my-compression.png
