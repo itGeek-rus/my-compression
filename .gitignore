@@ -1,0 +1,9 @@
+/dist/
+*.syso
+*.exe
+*.test
+.DS_Store
+.idea/
+packaging/icon.png
+packaging/icon.ico
+packaging/icon.icns

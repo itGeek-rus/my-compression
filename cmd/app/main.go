@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,19 +17,30 @@ import (
 	"my-compression/internal/job"
 )
 
+var version = "dev"
+
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	cfg := config.Load()
 	jobs := job.NewStore()
 
-	h, err := handler.New(cfg, jobs, log)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	h, err := handler.New(cfg, jobs, log, stop)
 	if err != nil {
 		log.Error("init handler", "err", err)
 		os.Exit(1)
 	}
 
+	ln, err := net.Listen("tcp", cfg.Addr)
+	if err != nil {
+		log.Error("listen", "err", err)
+		os.Exit(1)
+	}
+
+	url := "http://" + displayAddr(ln.Addr().String())
 	srv := &http.Server{
-		Addr:              cfg.Addr,
 		Handler:           h.Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       60 * time.Second,
@@ -36,15 +49,15 @@ func main() {
 	}
 
 	go func() {
-		log.Info("starting app", "addr", cfg.Addr)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Info("starting app", "url", url, "version", version)
+		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("app failed", "err", err)
 			os.Exit(1)
 		}
 	}()
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	go openBrowser(url)
+
 	<-ctx.Done()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
@@ -54,4 +67,19 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("app stopped")
+}
+
+func displayAddr(addr string) string {
+	host, port, ok := strings.Cut(addr, ":")
+	if ok {
+		return "127.0.0.1:" + port
+	}
+	if strings.HasPrefix(addr, ":") {
+		return "127.0.0.1" + addr
+	}
+	if strings.HasPrefix(addr, "0.0.0.0:") {
+		return "127.0.0.1" + strings.TrimPrefix(addr, "0.0.0.0:")
+	}
+	_ = host
+	return addr
 }

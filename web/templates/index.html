@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>my compression</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -33,6 +35,7 @@
         </fieldset>
 
         <button type="submit">To run</button>
+        <button type="button" id="quit-btn" class="quit">Quit</button>
     </form>
 
     <section class="panel status" aria-live="polite">
@@ -104,6 +107,11 @@
         }
         renderJob(data);
         poll(data.id);
+    });
+
+    document.getElementById('quit-btn').addEventListener('click', async () => {
+        await fetch('/api/quit', { method: 'POST' });
+        document.getElementById('status-text').textContent = 'App stopped';
     });
 </script>
 </body>

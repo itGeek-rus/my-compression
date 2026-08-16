@@ -65,6 +65,13 @@ button, .download {
     cursor: pointer;
 }
 
+.quit {
+    margin-left: .5rem;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line);
+}
+
 .progress {
     height: 8px;
     background: var(--line);

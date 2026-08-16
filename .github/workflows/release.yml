@@ -1,0 +1,99 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install tools
+        run: choco install imagemagick innosetup -y
+      - name: Icons and exe
+        shell: bash
+        run: |
+          magick -background none packaging/icon.svg -resize 256x256 packaging/icon.png
+          magick packaging/icon.png -define icon:auto-resize=256,128,64,48,32,16 packaging/icon.ico
+          go install github.com/tc-hib/go-winres@latest
+          cd cmd/app
+          go-winres simply --icon ../../packaging/icon.png --manifest gui
+          cd ../..
+          mkdir -p dist
+          go build -trimpath -ldflags "-s -w -H windowsgui -X main.version=${GITHUB_REF_NAME}" \
+            -o dist/my-compression.exe ./cmd/app
+          "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" \
+            "//DMyAppVersion=${GITHUB_REF_NAME#v}" \
+            packaging/windows/setup.iss
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/MyCompression-Setup-windows-amd64.exe
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        goarch: [arm64, amd64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build .app and .dmg
+        run: |
+          brew install librsvg
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i '' "s/0.1.0/${VERSION}/g" packaging/macos/Info.plist
+          rsvg-convert -w 1024 -h 1024 packaging/icon.svg -o packaging/icon.png
+          mkdir icon.iconset
+          for s in 16 32 128 256 512; do
+            sips -z $s $s packaging/icon.png --out icon.iconset/icon_${s}x${s}.png
+            dpr=$((s*2))
+            sips -z $dpr $dpr packaging/icon.png --out icon.iconset/icon_${s}x${s}@2x.png
+          done
+          iconutil -c icns icon.iconset -o packaging/icon.icns
+
+          GOOS=darwin GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
+            go build -trimpath -ldflags "-s -w" -o my-compression ./cmd/app
+
+          APP="dist/My Compression.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp my-compression "$APP/Contents/MacOS/my-compression"
+          cp packaging/macos/Info.plist "$APP/Contents/Info.plist"
+          cp packaging/icon.icns "$APP/Contents/Resources/icon.icns"
+
+          hdiutil create -volname "My Compression" -srcfolder dist \
+            -ov -format UDZO "dist/MyCompression-macos-${{ matrix.goarch }}.dmg"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/MyCompression-macos-${{ matrix.goarch }}.dmg
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build .deb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin
+          rsvg-convert -w 512 -h 512 packaging/icon.svg -o packaging/icon.png
+          mkdir -p dist
+          CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o dist/my-compression ./cmd/app
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/version: .*/version: ${VERSION}/" packaging/linux/nfpm.yml
+          nfpm pkg --packager deb --config packaging/linux/nfpm.yml --target dist/
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.deb

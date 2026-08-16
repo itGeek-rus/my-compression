@@ -26,9 +26,10 @@ type Handler struct {
 	tmpl      *template.Template
 	log       *slog.Logger
 	static    http.Handler
+	quit      context.CancelFunc
 }
 
-func New(cfg config.Config, jobs *job.Store, log *slog.Logger) (*Handler, error) {
+func New(cfg config.Config, jobs *job.Store, log *slog.Logger, quit context.CancelFunc) (*Handler, error) {
 	tmpl, err := template.ParseFS(web.Assets, "templates/*.html")
 	if err != nil {
 		return nil, err
@@ -46,6 +47,7 @@ func New(cfg config.Config, jobs *job.Store, log *slog.Logger) (*Handler, error)
 		tmpl:      tmpl,
 		log:       log,
 		static:    http.FileServer(http.FS(staticFS)),
+		quit:      quit,
 	}, nil
 }
 
@@ -184,6 +186,27 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 		"status": "ok",
 		"time":   time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+func (h *Handler) Favicon(w http.ResponseWriter, r *http.Request) {
+	data, err := fs.ReadFile(web.Assets, "static/favicon.svg")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "image/svg+xml")
+	_, _ = w.Write(data)
+}
+
+func (h *Handler) Quit(w http.ResponseWriter, r *http.Request) {
+	h.writeJSON(w, http.StatusOK, map[string]string{"status": "stopping"})
+	if h.quit == nil {
+		return
+	}
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		h.quit()
+	}()
 }
 
 func (h *Handler) writeJSON(w http.ResponseWriter, code int, v any) {
