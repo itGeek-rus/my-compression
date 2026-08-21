@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-<main class="page">
+<main class="page" id="app">
     <header class="hero">
         <p class="brand">my compression</p>
         <h1>Pack it. Unpack it. Keep every byte.</h1>
@@ -39,7 +39,8 @@
         </fieldset>
 
         <div class="actions">
-            <button type="submit">Run</button>
+            <button type="submit" class="btn btn--primary">Run</button>
+            <button type="button" id="stop-btn" class="btn btn--stop">Stop application</button>
         </div>
     </form>
 
@@ -53,9 +54,15 @@
             <div><dt>Before</dt><dd id="size-before">—</dd></div>
             <div><dt>After</dt><dd id="size-after">—</dd></div>
         </dl>
-        <a id="download-link" class="download" hidden href="#">Download result</a>
+        <a id="download-link" class="btn btn--primary download" hidden href="#">Download result</a>
     </section>
 </main>
+
+<section class="stopped" id="stopped" hidden>
+    <p class="brand">my compression</p>
+    <h1>Application stopped.</h1>
+    <p class="lead">You can close this tab.</p>
+</section>
 
 <script>
     const form = document.getElementById('compress-form');
@@ -215,6 +222,14 @@
             statusText.textContent = err.message || 'network error';
             submitBtn.disabled = false;
         }
+    });
+
+    document.getElementById('stop-btn').addEventListener('click', async () => {
+        try {
+            await fetch('/api/quit', { method: 'POST' });
+        } catch (_) { /* server may already be closing */ }
+        document.getElementById('app').hidden = true;
+        document.getElementById('stopped').hidden = false;
     });
 </script>
 </body>

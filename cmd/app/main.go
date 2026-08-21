@@ -27,7 +27,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	h, err := handler.New(cfg, jobs, log)
+	h, err := handler.New(cfg, jobs, log, stop)
 	if err != nil {
 		log.Error("init handler", "err", err)
 		os.Exit(1)

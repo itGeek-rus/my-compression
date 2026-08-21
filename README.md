@@ -12,7 +12,7 @@ go test ./...
 go run ./cmd/app
 ```
 
-The app opens http://127.0.0.1:9005 in the browser. Stop it with `Ctrl+C` in the terminal.
+The app opens http://127.0.0.1:9005 in the browser. Stop it with **Stop application** on the page, or `Ctrl+C` in the terminal.
 
 ```bash
 go build -o my-compression ./cmd/app
