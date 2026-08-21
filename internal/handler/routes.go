@@ -12,7 +12,6 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /api/process", h.Process)
 	mux.HandleFunc("GET /api/jobs/{id}", h.Status)
 	mux.HandleFunc("GET /api/jobs/{id}/download", h.Download)
-	mux.HandleFunc("POST /api/quit", h.Quit)
 
 	return mux
 }

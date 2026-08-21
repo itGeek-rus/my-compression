@@ -1,6 +1,9 @@
 # my-compression
 
-Local web app to archive or extract a file as ZIP or TAR.GZ, show sizes and progress, then download the result.
+Local web app to archive or extract a file without data loss, show sizes and progress, then download the result.
+
+**Pack:** ZIP, TAR.GZ, ZSTD, TAR.XZ  
+**Unpack:** the same, plus 7Z
 
 ## Run from source
 
@@ -9,7 +12,7 @@ go test ./...
 go run ./cmd/app
 ```
 
-The app opens http://127.0.0.1:9005 in the browser. Use **Quit** on the page to stop it, or `Ctrl+C` in the terminal.
+The app opens http://127.0.0.1:9005 in the browser. Stop it with `Ctrl+C` in the terminal.
 
 ```bash
 go build -o my-compression ./cmd/app
@@ -36,7 +39,13 @@ After a version tag is pushed, installers appear on the repository **Releases** 
 | macOS Intel | `MyCompression-macos-amd64.dmg` | Same as above |
 | Debian / Ubuntu | `my-compression_*_amd64.deb` | `sudo dpkg -i my-compression_*_amd64.deb` |
 
-The first launch on macOS may require **Right-click → Open** (Gatekeeper). Windows SmartScreen may ask to run an unknown publisher installer anyway.
+The first launch on macOS may require **Right-click → Open** (Gatekeeper), or:
+
+```bash
+xattr -cr "/Applications/My Compression.app"
+```
+
+Windows SmartScreen may ask to run an unknown publisher installer anyway.
 
 ## Publish a release
 

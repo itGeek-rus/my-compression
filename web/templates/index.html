@@ -12,35 +12,40 @@
 <main class="page">
     <header class="hero">
         <p class="brand">my compression</p>
-        <h1>Archiving and unpacking</h1>
-        <p class="lead">ZIP and TAR.GZ without data loss. Upload the file, select an action, and download the result.</p>
+        <h1>Pack it. Unpack it. Keep every byte.</h1>
+        <p class="lead">Lossless ZIP, TAR.GZ, ZSTD and TAR.XZ. Drop a file, pick a format, download the result.</p>
     </header>
 
     <form id="compress-form" class="panel" enctype="multipart/form-data">
-        <label class="field">
-            <span>File</span>
-            <input type="file" name="file" required />
+        <label class="drop" id="drop-zone">
+            <input id="file-input" type="file" name="file" required />
+            <span class="drop__title" id="file-label">Drop a file here</span>
+            <span class="drop__hint">or click to browse</span>
         </label>
 
-        <fieldset class="field">
+        <fieldset class="seg">
             <legend>Action</legend>
-            <label><input type="radio" name="action" value="archive" checked /> To archive</label>
-            <label><input type="radio" name="action" value="extract" /> Unpack</label>
+            <label class="seg__opt"><input type="radio" name="action" value="archive" checked /> Archive</label>
+            <label class="seg__opt"><input type="radio" name="action" value="extract" /> Unpack</label>
         </fieldset>
 
-        <fieldset class="field">
+        <fieldset class="formats">
             <legend>Format</legend>
-            <label><input type="radio" name="format" value="zip" checked /> ZIP</label>
-            <label><input type="radio" name="format" value="tar.gz" /> TAR.GZ</label>
+            <label class="chip"><input type="radio" name="format" value="zip" checked /> <span>ZIP</span><small>classic</small></label>
+            <label class="chip"><input type="radio" name="format" value="tar.gz" /> <span>TAR.GZ</span><small>unix</small></label>
+            <label class="chip"><input type="radio" name="format" value="zstd" /> <span>ZSTD</span><small>fastest+</small></label>
+            <label class="chip"><input type="radio" name="format" value="tar.xz" /> <span>TAR.XZ</span><small>smallest</small></label>
+            <label class="chip chip--extract" data-extract-only><input type="radio" name="format" value="7z" /> <span>7Z</span><small>unpack only</small></label>
         </fieldset>
 
-        <button type="submit">To run</button>
-        <button type="button" id="quit-btn" class="quit">Quit</button>
+        <div class="actions">
+            <button type="submit">Run</button>
+        </div>
     </form>
 
     <section class="panel status" aria-live="polite">
         <h2>Status</h2>
-        <p id="status-text">Waiting for the file…</p>
+        <p id="status-text">Waiting for a file…</p>
         <div class="progress" hidden>
             <div id="progress-bar" class="progress__bar"></div>
         </div>
@@ -48,18 +53,105 @@
             <div><dt>Before</dt><dd id="size-before">—</dd></div>
             <div><dt>After</dt><dd id="size-after">—</dd></div>
         </dl>
-        <a id="download-link" class="download" hidden href="#">Download the result</a>
+        <a id="download-link" class="download" hidden href="#">Download result</a>
     </section>
 </main>
 
 <script>
     const form = document.getElementById('compress-form');
+    const fileInput = document.getElementById('file-input');
+    const fileLabel = document.getElementById('file-label');
+    const dropZone = document.getElementById('drop-zone');
     const statusText = document.getElementById('status-text');
     const progressWrap = document.querySelector('.progress');
     const progressBar = document.getElementById('progress-bar');
     const sizeBefore = document.getElementById('size-before');
     const sizeAfter = document.getElementById('size-after');
     const downloadLink = document.getElementById('download-link');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    const EXT_FORMAT = {
+        '.zip': 'zip',
+        '.tar.gz': 'tar.gz',
+        '.tgz': 'tar.gz',
+        '.zst': 'zstd',
+        '.zstd': 'zstd',
+        '.7z': '7z',
+        '.tar.xz': 'tar.xz',
+        '.txz': 'tar.xz',
+    };
+
+    const ARCHIVE_ACCEPT = '.zip,.tar.gz,.tgz,.zst,.zstd,.7z,.tar.xz,.txz';
+
+    const archiveExt = (name) => {
+        const lower = (name || '').toLowerCase();
+        return Object.keys(EXT_FORMAT).sort((a, b) => b.length - a.length).find((ext) => lower.endsWith(ext));
+    };
+
+    const isUnpack = () => form.querySelector('input[name="action"]:checked').value === 'extract';
+
+    const clearFile = () => {
+        fileInput.value = '';
+        fileLabel.textContent = 'Drop a file here';
+    };
+
+    const setFileName = (name) => {
+        fileLabel.textContent = name || 'Drop a file here';
+        if (!name) return;
+        const key = archiveExt(name);
+        if (!key) return;
+        const radio = form.querySelector(`input[name="format"][value="${EXT_FORMAT[key]}"]`);
+        if (radio && !radio.disabled) radio.checked = true;
+    };
+
+    const takeFile = (file) => {
+        if (!file) return;
+        if (isUnpack() && !archiveExt(file.name)) {
+            clearFile();
+            statusText.textContent = 'Choose an archive: ZIP, TAR.GZ, ZSTD, TAR.XZ, or 7Z';
+            return;
+        }
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        setFileName(file.name);
+    };
+
+    const syncAction = () => {
+        const unpack = isUnpack();
+        const chip = form.querySelector('[data-extract-only] input');
+        chip.disabled = !unpack;
+        if (!unpack && chip.checked) {
+            form.querySelector('input[name="format"][value="zstd"]').checked = true;
+        }
+        fileInput.accept = unpack ? ARCHIVE_ACCEPT : '';
+        const current = fileInput.files[0];
+        if (unpack && current && !archiveExt(current.name)) {
+            clearFile();
+            statusText.textContent = 'Choose an archive: ZIP, TAR.GZ, ZSTD, TAR.XZ, or 7Z';
+        }
+    };
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) {
+            fileLabel.textContent = 'Drop a file here';
+            return;
+        }
+        takeFile(file);
+    });
+    form.querySelectorAll('input[name="action"]').forEach((el) => el.addEventListener('change', syncAction));
+    syncAction();
+
+    ['dragenter', 'dragover'].forEach((ev) => {
+        dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('is-over'); });
+    });
+    ['dragleave', 'drop'].forEach((ev) => {
+        dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('is-over'); });
+    });
+    dropZone.addEventListener('drop', (e) => {
+        takeFile(e.dataTransfer.files[0]);
+    });
 
     const fmtBytes = (n) => {
         if (n == null || n < 0) return '—';
@@ -80,38 +172,49 @@
         if (job.status === 'done') {
             downloadLink.hidden = false;
             downloadLink.href = `/api/jobs/${job.id}/download`;
+            downloadLink.setAttribute('download', job.download_name || 'result');
         } else {
             downloadLink.hidden = true;
         }
     };
 
     const poll = async (id) => {
-        const res = await fetch(`/api/jobs/${id}`);
-        if (!res.ok) throw new Error('it was not possible to obtain the status.');
-        const job = await res.json();
-        renderJob(job);
-        if (job.status === 'done' || job.status === 'failed') return;
-        setTimeout(() => poll(id), 500);
+        try {
+            const res = await fetch(`/api/jobs/${id}`);
+            if (!res.ok) throw new Error('failed to get status');
+            const job = await res.json();
+            renderJob(job);
+            if (job.status === 'done' || job.status === 'failed') {
+                submitBtn.disabled = false;
+                return;
+            }
+            setTimeout(() => poll(id), 500);
+        } catch (err) {
+            statusText.textContent = err.message || 'status error';
+            submitBtn.disabled = false;
+        }
     };
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        statusText.textContent = 'Downloading…';
+        submitBtn.disabled = true;
+        statusText.textContent = 'Uploading…';
         downloadLink.hidden = true;
 
-        const res = await fetch('/api/process', { method: 'POST', body: new FormData(form) });
-        const data = await res.json();
-        if (!res.ok) {
-            statusText.textContent = data.error || 'error';
-            return;
+        try {
+            const res = await fetch('/api/process', { method: 'POST', body: new FormData(form) });
+            const data = await res.json();
+            if (!res.ok) {
+                statusText.textContent = data.error || 'error';
+                submitBtn.disabled = false;
+                return;
+            }
+            renderJob(data);
+            poll(data.id);
+        } catch (err) {
+            statusText.textContent = err.message || 'network error';
+            submitBtn.disabled = false;
         }
-        renderJob(data);
-        poll(data.id);
-    });
-
-    document.getElementById('quit-btn').addEventListener('click', async () => {
-        await fetch('/api/quit', { method: 'POST' });
-        document.getElementById('status-text').textContent = 'App stopped';
     });
 </script>
 </body>

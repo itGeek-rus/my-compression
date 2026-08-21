@@ -15,11 +15,15 @@ type Format string
 const (
 	FormatZIP   Format = "zip"
 	FormatTarGz Format = "tar.gz"
+	FormatZstd  Format = "zstd"
+	Format7z    Format = "7z"
+	FormatTarXz Format = "tar.xz"
 )
 
 var (
-	ErrUnsupportedFormat = errors.New("unsupported format")
-	ErrEmptyInput        = errors.New("empty input")
+	ErrUnsupportedFormat   = errors.New("unsupported format")
+	ErrEmptyInput          = errors.New("empty input")
+	Err7zCreateUnsupported = errors.New("7z packing is not supported; use zstd or tar.xz")
 )
 
 // ProgressFunc report progress 0...100. Maybe nil
@@ -33,11 +37,17 @@ type Result struct {
 }
 
 func ParseFormat(s string) (Format, error) {
-	switch Format(strings.ToLower(strings.TrimSpace(s))) {
-	case FormatZIP:
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "zip":
 		return FormatZIP, nil
-	case FormatTarGz:
+	case "tar.gz", "tgz":
 		return FormatTarGz, nil
+	case "zstd", "zst":
+		return FormatZstd, nil
+	case "7z":
+		return Format7z, nil
+	case "tar.xz", "txz":
+		return FormatTarXz, nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, s)
 	}
@@ -65,6 +75,9 @@ func Archive(ctx context.Context, srcPath, destDir string, format Format, progre
 
 	base := filepath.Base(srcPath)
 	outName := base + extension(format)
+	if format == Format7z {
+		return Result{}, Err7zCreateUnsupported
+	}
 	outPath := filepath.Join(destDir, outName)
 
 	out, err := os.Create(outPath)
@@ -78,6 +91,12 @@ func Archive(ctx context.Context, srcPath, destDir string, format Format, progre
 		err = writeZIP(ctx, out, srcPath, base, progress)
 	case FormatTarGz:
 		err = writeTarGz(ctx, out, srcPath, base, progress)
+	case FormatZstd:
+		err = writeZstd(ctx, out, srcPath, progress)
+	case FormatTarXz:
+		err = writeTarXz(ctx, out, srcPath, base, progress)
+	case Format7z:
+		err = Err7zCreateUnsupported
 	default:
 		err = ErrUnsupportedFormat
 	}
@@ -132,6 +151,12 @@ func Extract(ctx context.Context, srcPath, destDir string, format Format, progre
 		names, err = extractZIP(ctx, srcPath, extractRoot, progress)
 	case FormatTarGz:
 		names, err = extractTarGz(ctx, srcPath, extractRoot, progress)
+	case FormatZstd:
+		names, err = extractZstd(ctx, srcPath, extractRoot, progress)
+	case Format7z:
+		names, err = extract7z(ctx, srcPath, extractRoot, progress)
+	case FormatTarXz:
+		names, err = extractTarXz(ctx, srcPath, extractRoot, progress)
 	default:
 		err = ErrUnsupportedFormat
 	}
@@ -192,6 +217,12 @@ func extension(format Format) string {
 		return ".zip"
 	case FormatTarGz:
 		return ".tar.gz"
+	case FormatZstd:
+		return ".zst"
+	case Format7z:
+		return ".7z"
+	case FormatTarXz:
+		return ".tar.xz"
 	default:
 		return ""
 	}
