@@ -23,7 +23,7 @@ func NewProcessor(jobs *job.Store, tempDir string) *Processor {
 type Input struct {
 	JobID    string
 	Action   string // archive | extract
-	Format   string // zip | tar.gz
+	Format   string // zip | tar.gz | zstd | 7z | tar.xz
 	Filename string
 	SrcPath  string
 	WorkDir  string
