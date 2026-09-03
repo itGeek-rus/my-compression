@@ -74,7 +74,7 @@ func (h *Handler) Process(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := archive.ParseFormat(format); err != nil {
-		h.writeJSON(w, http.StatusBadRequest, map[string]string{"error": "format: zip|tar.gz|zstd|7z|tar.xz"})
+		h.writeJSON(w, http.StatusBadRequest, map[string]string{"error": "format: zip|tar.gz|zstd|7z|tar.xz|goal"})
 		return
 	}
 
