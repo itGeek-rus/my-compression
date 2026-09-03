@@ -1,13 +1,16 @@
 module my-compression
 
-go 1.26
+go 1.27
 
 require (
 	github.com/bodgit/sevenzip v1.6.5
 	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.19.2
 	github.com/ulikunitz/xz v0.5.16
+	go-algoritms v0.0.0-20260829092950-22cd8239d3a4
 )
+
+replace go-algoritms => github.com/itGeek-rus/go-algoritms v0.0.0-20260829092950-22cd8239d3a4
 
 require (
 	github.com/andybalholm/brotli v1.2.2 // indirect

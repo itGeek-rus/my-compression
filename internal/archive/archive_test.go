@@ -151,6 +151,32 @@ func TestArchiveAndExtractTarXz(t *testing.T) {
 	}
 }
 
+func TestArchiveAndExtractGOAL(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "note.txt")
+	payload := bytes.Repeat([]byte("g"), 4096)
+	if err := os.WriteFile(src, payload, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := archive.Archive(context.Background(), src, filepath.Join(dir, "out"), archive.FormatGOAL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := archive.Extract(context.Background(), res.OutputPath, filepath.Join(dir, "ext"), archive.FormatGOAL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(got.OutputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(data, payload) {
+		t.Fatal("goal roundtrip failed")
+	}
+}
+
 func TestArchive7zUnsupported(t *testing.T) {
 	dir := t.TempDir()
 	src := filepath.Join(dir, "a.txt")

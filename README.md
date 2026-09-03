@@ -2,7 +2,7 @@
 
 Local web app to archive or extract a file without data loss, show sizes and progress, then download the result.
 
-**Pack:** ZIP, TAR.GZ, ZSTD, TAR.XZ  
+**Pack:** ZIP, TAR.GZ, ZSTD, TAR.XZ, GOAL  
 **Unpack:** the same, plus 7Z
 
 ## Run from source

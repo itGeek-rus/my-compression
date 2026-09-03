@@ -13,7 +13,7 @@
     <header class="hero">
         <p class="brand">my compression</p>
         <h1>Pack it. Unpack it. Keep every byte.</h1>
-        <p class="lead">Lossless ZIP, TAR.GZ, ZSTD and TAR.XZ. Drop a file, pick a format, download the result.</p>
+        <p class="lead">Lossless ZIP, TAR.GZ, ZSTD, TAR.XZ and GOAL. Drop a file, pick a format, download the result.</p>
     </header>
 
     <form id="compress-form" class="panel" enctype="multipart/form-data">
@@ -35,6 +35,7 @@
             <label class="chip"><input type="radio" name="format" value="tar.gz" /> <span>TAR.GZ</span><small>unix</small></label>
             <label class="chip"><input type="radio" name="format" value="zstd" /> <span>ZSTD</span><small>fastest+</small></label>
             <label class="chip"><input type="radio" name="format" value="tar.xz" /> <span>TAR.XZ</span><small>smallest</small></label>
+            <label class="chip"><input type="radio" name="format" value="goal" /> <span>GOAL</span><small class="chip__hint">own algorithm<br>pack &amp; unpack</small></label>
             <label class="chip chip--extract" data-extract-only><input type="radio" name="format" value="7z" /> <span>7Z</span><small>unpack only</small></label>
         </fieldset>
 
@@ -86,9 +87,10 @@
         '.7z': '7z',
         '.tar.xz': 'tar.xz',
         '.txz': 'tar.xz',
+        '.goal': 'goal',
     };
 
-    const ARCHIVE_ACCEPT = '.zip,.tar.gz,.tgz,.zst,.zstd,.7z,.tar.xz,.txz';
+    const ARCHIVE_ACCEPT = '.zip,.tar.gz,.tgz,.zst,.zstd,.7z,.tar.xz,.txz,.goal';
 
     const archiveExt = (name) => {
         const lower = (name || '').toLowerCase();
@@ -113,11 +115,20 @@
 
     const takeFile = (file) => {
         if (!file) return;
-        if (isUnpack() && !archiveExt(file.name)) {
+
+        const ext = archiveExt(file.name);
+        if (ext === '.goal') {
+            form.querySelector('input[name="action"][value="extract"]').checked = true;
+        }
+
+        syncAction();
+
+        if (isUnpack() && !ext) {
             clearFile();
-            statusText.textContent = 'Choose an archive: ZIP, TAR.GZ, ZSTD, TAR.XZ, or 7Z';
+            statusText.textContent = 'Choose an archive: ZIP, TAR.GZ, ZSTD, TAR.XZ, GOAL, or 7Z';
             return;
         }
+
         const dt = new DataTransfer();
         dt.items.add(file);
         fileInput.files = dt.files;
@@ -133,10 +144,13 @@
         }
         fileInput.accept = unpack ? ARCHIVE_ACCEPT : '';
         const current = fileInput.files[0];
-        if (unpack && current && !archiveExt(current.name)) {
+        if (!current) return;
+        if (unpack && !archiveExt(current.name)) {
             clearFile();
-            statusText.textContent = 'Choose an archive: ZIP, TAR.GZ, ZSTD, TAR.XZ, or 7Z';
+            statusText.textContent = 'Choose an archive: ZIP, TAR.GZ, ZSTD, TAR.XZ, GOAL, or 7Z';
+            return;
         }
+        setFileName(current.name);
     };
 
     fileInput.addEventListener('change', () => {

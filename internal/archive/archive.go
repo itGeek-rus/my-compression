@@ -18,6 +18,7 @@ const (
 	FormatZstd  Format = "zstd"
 	Format7z    Format = "7z"
 	FormatTarXz Format = "tar.xz"
+	FormatGOAL  Format = "goal"
 )
 
 var (
@@ -48,6 +49,8 @@ func ParseFormat(s string) (Format, error) {
 		return Format7z, nil
 	case "tar.xz", "txz":
 		return FormatTarXz, nil
+	case "goal":
+		return FormatGOAL, nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedFormat, s)
 	}
@@ -97,6 +100,8 @@ func Archive(ctx context.Context, srcPath, destDir string, format Format, progre
 		err = writeTarXz(ctx, out, srcPath, base, progress)
 	case Format7z:
 		err = Err7zCreateUnsupported
+	case FormatGOAL:
+		err = writeGOAL(ctx, out, srcPath, progress)
 	default:
 		err = ErrUnsupportedFormat
 	}
@@ -157,6 +162,8 @@ func Extract(ctx context.Context, srcPath, destDir string, format Format, progre
 		names, err = extract7z(ctx, srcPath, extractRoot, progress)
 	case FormatTarXz:
 		names, err = extractTarXz(ctx, srcPath, extractRoot, progress)
+	case FormatGOAL:
+		names, err = extractGOAL(ctx, srcPath, extractRoot, progress)
 	default:
 		err = ErrUnsupportedFormat
 	}
@@ -223,6 +230,8 @@ func extension(format Format) string {
 		return ".7z"
 	case FormatTarXz:
 		return ".tar.xz"
+	case FormatGOAL:
+		return ".goal"
 	default:
 		return ""
 	}
